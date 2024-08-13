@@ -1,0 +1,7 @@
+% Initial condition
+x_a0 = [1;1]*pi/180         % convert to radian
+x_b0 = [-5;2]*pi/180
+x_c0 = [5;2]*pi/180
+
+% Time span
+tspan = [0 ]
