@@ -6,4 +6,5 @@ function x_dot = pedulum(t,x)
 
     x_dot = [x(2)
              -g/L*sin(x(1))];
+
 end

@@ -1,4 +1,4 @@
-clear;
+clc, clear, close all;
 
 % Initial condition
 x_a0 = [1;1]*pi/180;         % convert to radian
@@ -33,16 +33,5 @@ xlabel('t [s], y(1) & y(2)');
 ylabel('y(1) & y(2)');
 legend('y1 [rad], y2 [rad/s]');
 
-% Initial condition
-x10 = [-1; 2];
 
-% Solving
-[t1, y1] = ode45(@activity1_eq1, tspan, x10);
 
-% Calculate the exact solution
-t = 0:0.01:20;
-y_ex1 = 5/2 - 5*exp(-t) + 3/2*exp(-2*t);
-
-% Plotting
-figure
-plot(t1,y1(:,1), 'b', t, y_ex1, '--r');
