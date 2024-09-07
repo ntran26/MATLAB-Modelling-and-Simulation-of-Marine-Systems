@@ -24,6 +24,12 @@ function xdot = ex47(t,x,u)
     Kb = 0.1;       % back-emf constant
     K = 0.1;        % motor constant
     b = 0.000792;   % viscous friction coefficient
+    
+    %{
+    [x1_dot     [0     1      0           [x1        [0
+     x2_dot  =   0   -b/J     K/J     *    x2    +    0     * [u]
+     x3_dot]     0   -K/La  -Ra/La]        x3]       1/La]   
+    %}
 
     xdot = [x(2)
             -b/J*x(2)+K/J*x(3)

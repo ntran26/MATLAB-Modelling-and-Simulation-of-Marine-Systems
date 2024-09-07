@@ -1,3 +1,0 @@
-function x_dot = ex47(t,x,u)
-    La = 56e-5;     % armature inductance
-    Ra = 
