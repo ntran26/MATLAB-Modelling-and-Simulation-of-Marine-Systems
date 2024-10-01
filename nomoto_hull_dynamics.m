@@ -7,7 +7,7 @@ clear, clc, close all;
 x = [0; 0];
 
 % Input vector
-u = [10*pi/180; 0];
+u = [30*pi/180; 0];
 
 % Simulation parameters
 step = 0.1;
@@ -70,3 +70,13 @@ function x_dot = ship_model(x, u)
     x_dot = [r
              (K/T)*del - (r/T)];
 end
+% 
+% function [xdot, Y] = activity1(x,u,t)
+%     T = 7.5;
+%     K = 0.11;
+% 
+%     xdot = [x(2)
+%             (-1/T)*x(2) + (K/T)*u(1)];
+% 
+%     Y = [1 0;0 1][x(1);x(2)] + [0;0]*[u(1)];
+% end
