@@ -6,7 +6,7 @@ clear, clc, close all;
 x = [0;0;0;0;0];
 
 % Desired yaw angle
-psid = 5*pi/180;
+psid = 30*pi/180;
 
 % PID control gains and initial settings
 K = [0.75 0.025 5];
@@ -79,9 +79,9 @@ end
 
 % Extract data
 t = data(:,1);
-rudder = data(:,2);
-yaw = data(:,3);
-yaw_rate = data(:,4);
+yaw = data(:,2);
+yaw_rate = data(:,3);
+rudder = data(:,4);
 xpos = data(:,5);
 ypos = data(:,6);
 
@@ -94,23 +94,23 @@ ylabel("r [deg]")
 grid on;
 
 subplot(3,1,2);
-plot(t,yaw);
+plot(t,yaw, "LineWidth", 2);
 title("Yaw angle over time");
 ylabel("\psi [deg]")
 grid on;
 
 subplot(3,1,3);
-plot(t,yaw_rate);
+plot(t,yaw_rate, "LineWidth", 2);
 title("Yaw rate over time");
 ylabel("$\dot{\psi}$ [deg]", 'Interpreter','latex')
 grid on;
 xlabel("Time [s]")
 
 figure
-plot(ypos,xpos);
+plot(ypos,xpos, "LineWidth", 2);
 grid on;
 axis("equal")
-title("Trajectory");
+title("Autopilot trajectory");
 
 % State space model to State vector:
 % x(1) = rudder (u)
