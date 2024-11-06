@@ -22,10 +22,10 @@ clear, clc, close all;
 % n_c = commanded shaft velocity (rpm)
 
 % Define inputs
-u0 = 8;     % surge velocity [m/s]
+u0 = 8;             % surge velocity [m/s]
 n_ref = 70;
 n_c = 70;
-setco = 50*pi/180;  % Desired course [rad]
+setco = 10*pi/180;  % Desired course [degree]
 
 % Initial state vector
 X = [u0; 0; 0; 0; 0; 0; 0; 0; 0; n_c];
@@ -113,32 +113,29 @@ shaft = data(:,10);
 
 % Display
 figure
-subplot(4,1,1)
-plot(time, yaw*180/pi);
+subplot(3,1,1)
+plot(time, yaw*180/pi, "LineWidth", 1.5);
+yline(10, 'r--', 'Desired Course');
 grid on;
 ylabel("Heading [deg]");
 
-subplot(4,1,2)
-plot(time, rudder*180/pi);
+subplot(3,1,2)
+plot(time, rudder*180/pi, "LineWidth", 1.5);
 grid on;
 ylabel("Rudder [deg]");
 
-subplot(4,1,3)
-plot(time,yaw_rate*180/pi);
+subplot(3,1,3)
+plot(time,yaw_rate*180/pi, "LineWidth", 1.5);
 grid on;
 ylabel("Yaw rate [deg/s]");
-
-subplot(4,1,4)
-plot(time, roll*180/pi);
-grid on;
-ylabel("Roll [deg]");
-xlabel("Time [s]");
 
 figure
 plot(y_pos, x_pos);
 title("Trajectory")
 axis("equal");
 grid on;
+
+
 
 function ui = PIDautopilot(k,ee,n_c)
     % k(1) = kp, k(2) = ki, k(3) = kd

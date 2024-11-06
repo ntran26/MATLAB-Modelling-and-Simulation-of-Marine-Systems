@@ -80,22 +80,22 @@ shaft = data(:,10);
 % Display
 figure
 subplot(4,1,1)
-plot(time, rudder*180/pi);
+plot(time, rudder*180/pi, 'LineWidth', 1.5);
 grid on;
 ylabel("Rudder angle [deg]");
 
 subplot(4,1,2)
-plot(time, yaw_rate*180/pi);
+plot(time, yaw_rate*180/pi, 'LineWidth', 1.5);
 grid on;
 ylabel("Yaw rate [deg/s]");
 
 subplot(4,1,3)
-plot(time,yaw*180/pi);
+plot(time,yaw*180/pi, 'LineWidth', 1.5);
 grid on;
 ylabel("Yaw angle [deg]");
 
 subplot(4,1,4)
-plot(time, roll*180/pi);
+plot(time, roll*180/pi, 'LineWidth', 1.5);
 grid on;
 ylabel("Roll angle [deg]");
 xlabel("Time [s]");
@@ -104,3 +104,5 @@ figure
 plot(y_pos, x_pos);
 axis("equal");
 grid on;
+xlabel("y-direction");
+ylabel("x-direction");

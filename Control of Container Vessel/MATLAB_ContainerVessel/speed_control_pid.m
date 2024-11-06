@@ -25,7 +25,7 @@ clear, clc, close all;
 
 % Initial Conditions
 u0 = 8;          % Initial surge velocity [m/s]
-delta_c = 10;    % Fixed rudder angle [rad]
+delta_c = 20;    % Fixed rudder angle [rad]
 n_c = 70;        % Initial shaft speed [RPM]
 set_u = 6;      % desired speed [m/s]
 

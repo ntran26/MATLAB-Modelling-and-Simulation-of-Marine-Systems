@@ -24,8 +24,8 @@ clear, clc, close all;
 % Define inputs
 u0 = 8;     % surge velocity [m/s]
 u_c = [20*pi/180
-       80];     % commanded rudder [deg]
-X = [u0; 0; 0; 0; 0; 0; 0; 0; 0; 80];   % initial state vector
+       100];     % commanded rudder [deg]
+X = [u0; 0; 0; 0; 0; 0; 0; 0; 0; 100];   % initial state vector
 
 tf = 600;
 dt = 0.1;
@@ -78,22 +78,22 @@ shaft = data(:,10);
 % Display
 figure
 subplot(4,1,1)
-plot(time, rudder*180/pi);
+plot(time, rudder*180/pi, 'LineWidth', 1.5);
 grid on;
 ylabel("Rudder angle [deg]");
 
 subplot(4,1,2)
-plot(time, yaw_rate*180/pi);
+plot(time, yaw_rate*180/pi, 'LineWidth', 1.5);
 grid on;
 ylabel("Yaw rate [deg/s]");
 
 subplot(4,1,3)
-plot(time,yaw*180/pi);
+plot(time,yaw*180/pi, 'LineWidth', 1.5);
 grid on;
 ylabel("Yaw angle [deg]");
 
 subplot(4,1,4)
-plot(time, roll*180/pi);
+plot(time, roll*180/pi, 'LineWidth', 1.5);
 grid on;
 ylabel("Roll angle [deg]");
 xlabel("Time [s]");
@@ -102,3 +102,6 @@ figure
 plot(y_pos, x_pos);
 axis("equal");
 grid on;
+ylabel("X-position [m]");
+xlabel("Y-position [m]");
+title("Trajectory of Turning Circle Test");
