@@ -25,7 +25,7 @@ clear, clc, close all;
 u0 = 8;             % surge velocity [m/s]
 n_ref = 70;
 n_c = 70;
-setco = 10*pi/180;  % Desired course [degree]
+setco = 20*pi/180;  % Desired course [degree]
 
 % Initial state vector
 X = [u0; 0; 0; 0; 0; 0; 0; 0; 0; n_c];
@@ -115,7 +115,7 @@ shaft = data(:,10);
 figure
 subplot(3,1,1)
 plot(time, yaw*180/pi, "LineWidth", 1.5);
-yline(10, 'r--', 'Desired Course');
+yline(20, 'r--', 'Desired Course');
 grid on;
 ylabel("Heading [deg]");
 
@@ -128,13 +128,15 @@ subplot(3,1,3)
 plot(time,yaw_rate*180/pi, "LineWidth", 1.5);
 grid on;
 ylabel("Yaw rate [deg/s]");
+xlabel("Time [s]");
 
 figure
 plot(y_pos, x_pos);
 title("Trajectory")
+xlabel("Y-position [m]");
+ylabel("X-position [m]");
 axis("equal");
 grid on;
-
 
 
 function ui = PIDautopilot(k,ee,n_c)

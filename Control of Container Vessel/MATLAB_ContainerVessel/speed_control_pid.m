@@ -24,16 +24,25 @@ clear, clc, close all;
 % n_c = commanded shaft velocity (rpm)
 
 % Initial Conditions
-u0 = 8;          % Initial surge velocity [m/s]
-delta_c = 20;    % Fixed rudder angle [rad]
-n_c = 70;        % Initial shaft speed [RPM]
-set_u = 6;      % desired speed [m/s]
+u0 = 8;             % Initial surge velocity [m/s]
+n_c = 80;           % Initial shaft speed [RPM]
+set_u = 10;         % desired speed [m/s]
+set_psi = 20;       % desired course
+setco = set_psi*pi/180;  % convert to degree
 
 % Initial state vector [u; v; r; x; y; psi; p; phi; delta; n]
-X = [u0; 0; 0; 0; 0; 0; 0; 0; delta_c; n_c];
+X = [u0; 0; 0; 0; 0; 0; 0; 0; 0; n_c];
 
 % Control gains for speed controller
-k_speed = [15; 0.0002; 2.5]; 
+k_head = [2.5; 0.0002; 2];
+% k_speed = [15; 0.0002; 2.5]; 
+k_speed = [196; 5.9; 414.38];
+
+% Inital values for heading error
+eh0 = 0;
+ehi = 0;
+ehd0 = 0;
+eh = [eh0; ehi; ehd0];
 
 % Initial values for speed error
 es0 = 0;
@@ -50,11 +59,42 @@ index = 0;
 for ii = 0:dt:tf
     index = index + 1;
 
-    % Calculate current speed
-    speed = sqrt(X(1)^2 + X(2)^2);
+    % Call the PID heading controller
+    u_head = PIDautopilot(k_head, eh);
+
+    % Call the PID speed controller
+    u_speed = PIDspeedControl(k_speed, es, X(10));
+
+    uu = [u_head; u_speed];
+    [Xdot, U] = container(X, uu);
+
+    % Update state with Euler integration
+    X = X + dt*Xdot;
+
+    % Boundary of yaw angle
+    if X(6) >= 2*pi
+        X(6) = 2*pi - X(6);
+    elseif X(6) <= -2*pi
+        X(6) = X(6) + 2*pi;
+    else
+        X(6) = X(6);
+    end
+
+    % Calculate heading error
+    eh(1) = setco - X(6);
+    
+    % RK2 method
+    k11 = dt*eh(1);
+    k21 = dt*(eh(1) + k11);
+    ehi = ehi + 0.5*(k11 + k21);
+    eh(2) = ehi;
+    ehd = (eh(1) - ehd0)/dt;
+    eh(3) = ehd;
+    ehd0 = eh(1);
+    
 
     % Calculate speed error
-    es(1) = set_u - speed;      % Current error in speed
+    es(1) = set_u - X(1);  
 
     % Update error terms for PID, use RK2 integrator
     k11 = dt * es(1);
@@ -64,13 +104,6 @@ for ii = 0:dt:tf
     esd = (es(1) - esd0) / dt;      % Derivative term
     es(3) = esd;
     esd0 = es(1);
-
-    % Call the PID speed controller
-    uu = PIDspeedControl(k_speed, es, delta_c, X(10));
-    [Xdot, U] = container(X, uu);
-
-    % Update state with Euler integration
-    X = X + dt*Xdot;
 
     % Store data
     time(index) = ii;       % time [s]
@@ -84,7 +117,6 @@ for ii = 0:dt:tf
     data(index,8) = X(8);   % roll angle [rad]
     data(index,9) = X(9);   % rudder angle [rad]
     data(index,10) = X(10); % actual shaft velocity [RPM]
-    data(index,11) = U;     % total velocity [m/s]
 end
 
 % Extract data
@@ -98,40 +130,60 @@ roll_rate = data(:,7);
 roll = data(:,8);
 rudder = data(:,9);
 shaft = data(:,10);
-speed = data(:,11);
 
 % Display results
 figure;
 subplot(4,1,1);
-plot(time, speed, 'LineWidth', 1.5);
+plot(time, surge, 'LineWidth', 1.5);
 yline(set_u, 'r--', 'Desired Speed');
 grid on;
 ylabel("Speed [m/s]");
 title("Speed Control with PID");
 
-subplot(4,1,2);
-plot(time, surge, 'LineWidth', 1.5);
+subplot(4,1,2)
+plot(time, yaw*180/pi, "LineWidth", 1.5);
+yline(set_psi, 'r--', 'Desired Course');
 grid on;
-ylabel("Surge [m/s]");
+ylabel("Heading [deg]");
 
 subplot(4,1,3);
-plot(time, sway, 'LineWidth', 1.5);
-grid on;
-ylabel("Sway [m/s]");
-
-subplot(4,1,4);
 plot(time, shaft, 'LineWidth', 1.5);
 grid on;
 ylabel("Shaft [m/s]");
+
+subplot(4,1,4)
+plot(time, rudder*180/pi, "LineWidth", 1.5);
+grid on;
+ylabel("Rudder [deg]");
 xlabel("Time [s]");
 
-% figure
-% plot(y_pos, x_pos);
-% title("Trajectory")
-% axis("equal");
-% grid on;
+figure
+plot(y_pos, x_pos);
+title("Trajectory")
+xlabel("Y-position [m]");
+ylabel("X-position [m]");
+axis("equal");
+grid on;
 
-function ui = PIDspeedControl(k, ee, delta_c, n_current)
+function uu = PIDautopilot(k,ee)
+    % k(1) = kp, k(2) = ki, k(3) = kd
+    % delta_c = commanded rudder angle
+    % n_c = commanded shaft velocity
+
+    delta_c = k(1)*ee(1) + k(2)*ee(2) + k(3)*ee(3);
+
+    if delta_c <= -10*pi/180
+        delta_c = -10*pi/180;
+    elseif delta_c >= 10*pi/180
+        delta_c = 10*pi/180;
+    else
+        delta_c = delta_c;
+    end
+
+    uu = delta_c;
+end
+
+function ui = PIDspeedControl(k, ee, n_current)
     % PID controller for speed control
     % k(1) = Kp, k(2) = Ki, k(3) = Kd
     % delta_c = commanded change in RPM
@@ -142,12 +194,11 @@ function ui = PIDspeedControl(k, ee, delta_c, n_current)
 
     if n_c >= 200
         n_c = 200;
-    elseif n_c <= 0
-        n_c = 0;
+    elseif n_c <= 1
+        n_c = 1;
     else
         n_c = n_c;
     end
 
-    ui = [delta_c
-          n_c];
+    ui = n_c;
 end
