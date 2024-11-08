@@ -1,7 +1,7 @@
-classdef speed_control_env < rl.env.MATLABEnvironment
+classdef SpeedControlEnv < rl.env.MATLABEnvironment
     properties
-        % State variables (relevant states from container model)
-        State = [8; 0; 0; 0; 0; 0; 0; 0; 0; 80];  % Initial state: [u; v; r; x; y; psi; p; phi; delta; n]
+        % State variables (all states for the model)
+        FullState = [8; 0; 0; 0; 0; 0; 0; 0; 0; 80];  % [u; v; r; x; y; psi; p; phi; delta; n]
         
         % Simulation parameters
         SampleTime = 0.1;                % Simulation time step
@@ -15,16 +15,16 @@ classdef speed_control_env < rl.env.MATLABEnvironment
     end
     
     methods
-        function this = speed_control_env()
-            % Define observation space (10-dimensional state vector)
-            ObservationInfo = rlNumericSpec([10 1], ...
+        function this = SpeedControlEnv()
+            % Define observation space (2-dimensional: surge velocity and yaw angle)
+            ObservationInfo = rlNumericSpec([2 1], ...
                 'LowerLimit', -inf, 'UpperLimit', inf);
-            ObservationInfo.Name = 'Ship States';
-            ObservationInfo.Description = '[u; v; r; x; y; psi; p; phi; delta; n]';
+            ObservationInfo.Name = 'Surge Velocity and Yaw Angle';
+            ObservationInfo.Description = '[u; psi]';
 
             % Define action space (continuous [rudder angle, shaft speed])
             ActionInfo = rlNumericSpec([2 1], ...
-                'LowerLimit', [-10*pi/180; 1], ...
+                'LowerLimit', [-10*pi/180; 0], ...
                 'UpperLimit', [10*pi/180; 200]);
             ActionInfo.Name = 'Rudder Angle and Shaft Speed';
 
@@ -43,35 +43,39 @@ classdef speed_control_env < rl.env.MATLABEnvironment
             n_c = action(2);      % Shaft speed command
             
             % Run ship dynamics
-            [Xdot, U] = container(this.State, [delta_c; n_c]);
-            this.State = this.State + this.SampleTime * Xdot;
+            [Xdot, U] = container(this.FullState, [delta_c; n_c]);
+            this.FullState = this.FullState + this.SampleTime * Xdot;
             
             % Enforce yaw angle within [-pi, pi] range
-            this.State(6) = wrapToPi(this.State(6));
+            this.FullState(6) = wrapToPi(this.FullState(6));
+            
+            % Extract relevant observations (surge velocity and yaw angle)
+            nextObs = [this.FullState(1); this.FullState(6)];
             
             % Compute heading and speed errors
-            headingError = wrapToPi(this.DesiredHeading - this.State(6));
-            speedError = this.DesiredSpeed - this.State(1);
+            headingError = wrapToPi(this.DesiredHeading - this.FullState(6));
+            speedError = this.DesiredSpeed - this.FullState(1);
 
             % Reward: negative of squared errors in heading and speed
-            reward = - sqrt(headingError^2 + speedError^2);
+            reward = - (headingError^2 + speedError^2);
             
-            % Check terminal condition
+            % Check terminal condition (optional)
             isDone = abs(headingError) < 0.05 && abs(speedError) < 0.1;
             this.IsDone = isDone;
             
             % Return next observation, reward, done flag, and logged signals
-            nextObs = this.State;
             loggedSignals = [];
         end
         
         function initialObservation = reset(this)
-            % Reset state and return initial observation
+            % Reset state to initial conditions and return initial observation
             u0 = 8;            % Initial surge velocity
             n_c = 80;          % Initial shaft speed
-            this.State = [u0; 0; 0; 0; 0; 0; 0; 0; 0; n_c];  % Reset to initial state
+            this.FullState = [u0; 0; 0; 0; 0; 0; 0; 0; 0; n_c];  % Reset to initial state
             this.IsDone = false;
-            initialObservation = this.State;
+            
+            % Initial observation includes only surge velocity and yaw angle
+            initialObservation = [this.FullState(1); this.FullState(6)];
         end
     end
 end

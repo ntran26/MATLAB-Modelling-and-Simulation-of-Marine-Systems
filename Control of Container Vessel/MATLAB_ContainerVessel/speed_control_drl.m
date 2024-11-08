@@ -2,6 +2,9 @@
 
 clear, clc, close all;
 
+load("SpeedControlAgent.mat");
+agent = agent1_Trained;
+
 % the state vector: x = [ u v r x y psi p phi delta n ]' for
 % a container ship L = 175 m, where
 %
@@ -33,23 +36,6 @@ setco = set_psi*pi/180;  % convert to degree
 % Initial state vector [u; v; r; x; y; psi; p; phi; delta; n]
 X = [u0; 0; 0; 0; 0; 0; 0; 0; 0; n_c];
 
-% Control gains for speed controller
-k_head = [2.5; 0.0002; 2];
-% k_speed = [15; 0.0002; 2.5]; 
-k_speed = [196; 5.9; 414.38];
-
-% Inital values for heading error
-eh0 = 0;
-ehi = 0;
-ehd0 = 0;
-eh = [eh0; ehi; ehd0];
-
-% Initial values for speed error
-es0 = 0;
-esi = 0;                        
-esd0 = 0;                       
-es = [es0; esi; esd0];
-
 % Simulation time 
 tf = 600;  
 dt = 0.1; 
@@ -59,50 +45,28 @@ index = 0;
 for ii = 0:dt:tf
     index = index + 1;
 
-    % Call the PID heading controller
-    u_head = PIDautopilot(k_head, eh);
+    % Define observation for the RL agent (e.g., current heading error)
+    headingError = wrapToPi(setco - X(6));  % [-pi, pi]
+    speedError = abs(set_u - X(1));
+    observation = X; 
 
-    % Call the PID speed controller
-    u_speed = PIDspeedControl(k_speed, es, X(10));
+    % Get the rudder action from the RL agent
+    % Convert the observation to a format compatible with the agent
+    action = getAction(agent, observation);
+    action = action{1};
+    
+    % Extract rudder angle command from action output
+    delta_c = action(1);  
+%     delta_c = max(min(delta_c, 10*pi/180), -10*pi/180);
 
-    uu = [u_head; u_speed];
+    n_c = action(2);
+%     n_c = max(min(n_c, 1), 200);
+
+    uu = [delta_c; n_c];
     [Xdot, U] = container(X, uu);
 
     % Update state with Euler integration
     X = X + dt*Xdot;
-
-    % Boundary of yaw angle
-    if X(6) >= 2*pi
-        X(6) = 2*pi - X(6);
-    elseif X(6) <= -2*pi
-        X(6) = X(6) + 2*pi;
-    else
-        X(6) = X(6);
-    end
-
-    % Calculate heading error
-    eh(1) = setco - X(6);
-    
-    % RK2 method
-    k11 = dt*eh(1);
-    k21 = dt*(eh(1) + k11);
-    ehi = ehi + 0.5*(k11 + k21);
-    eh(2) = ehi;
-    ehd = (eh(1) - ehd0)/dt;
-    eh(3) = ehd;
-    ehd0 = eh(1);
-    
-    % Calculate speed error
-    es(1) = set_u - X(1);  
-
-    % Update error terms for PID, use RK2 integrator
-    k11 = dt * es(1);
-    k21 = dt * (es(1) + k11);
-    esi = esi + 0.5 * (k11 + k21);  % Integral term
-    es(2) = esi;
-    esd = (es(1) - esd0) / dt;      % Derivative term
-    es(3) = esd;
-    esd0 = es(1);
 
     % Store data
     time(index) = ii;       % time [s]
@@ -137,7 +101,7 @@ plot(time, surge, 'LineWidth', 1.5);
 yline(set_u, 'r--', 'Desired Speed');
 grid on;
 ylabel("Speed [m/s]");
-title("Speed Control with PID");
+title("Speed Control with DDPG");
 
 subplot(4,1,2)
 plot(time, yaw*180/pi, "LineWidth", 1.5);
@@ -163,41 +127,3 @@ xlabel("Y-position [m]");
 ylabel("X-position [m]");
 axis("equal");
 grid on;
-
-function uu = PIDautopilot(k,ee)
-    % k(1) = kp, k(2) = ki, k(3) = kd
-    % delta_c = commanded rudder angle
-    % n_c = commanded shaft velocity
-
-    delta_c = k(1)*ee(1) + k(2)*ee(2) + k(3)*ee(3);
-
-    if delta_c <= -10*pi/180
-        delta_c = -10*pi/180;
-    elseif delta_c >= 10*pi/180
-        delta_c = 10*pi/180;
-    else
-        delta_c = delta_c;
-    end
-
-    uu = delta_c;
-end
-
-function ui = PIDspeedControl(k, ee, n_current)
-    % PID controller for speed control
-    % k(1) = Kp, k(2) = Ki, k(3) = Kd
-    % delta_c = commanded change in RPM
-    % n_c = current commanded RPM
-
-    delta_n = k(1)*ee(1) + k(2)*ee(2) + k(3)*ee(3);
-    n_c = n_current + delta_n;
-
-    if n_c >= 200
-        n_c = 200;
-    elseif n_c <= 1
-        n_c = 1;
-    else
-        n_c = n_c;
-    end
-
-    ui = n_c;
-end

@@ -7,7 +7,6 @@ classdef AutopilotEnv < rl.env.MATLABEnvironment
         % Simulation parameters
         SampleTime = 0.1;           % Simulation time step
         DesiredHeading = 10*pi/180; % Desired course (rad)
-        RudderAngles = [-10*pi/180, 0, 10*pi/180];
     end
     
     properties(Access = protected)
@@ -19,14 +18,13 @@ classdef AutopilotEnv < rl.env.MATLABEnvironment
         function this = AutopilotEnv()
             % Define observation (yaw) and action (rudder) specifications
             ObservationInfo = rlNumericSpec([1 1], 'LowerLimit', -pi, 'UpperLimit', pi);
-            %ActionInfo = rlNumericSpec([1 1], 'LowerLimit', -10*pi/180, 'UpperLimit', 10*pi/180);
-            ActionInfo = rlFiniteSetSpec([1 2 3]);
+            ActionInfo = rlNumericSpec([1 1], 'LowerLimit', -10*pi/180, 'UpperLimit', 10*pi/180);
             this = this@rl.env.MATLABEnvironment(ObservationInfo, ActionInfo);
         end
         
         function [nextObs, reward, isDone, loggedSignals] = step(this, action)
             % Dynamics and reward calculation
-            rudderAngle = this.RudderAngles(action);
+            rudderAngle = action;
             
             % Define control input vector [delta_c; n_c]
             % Assuming constant commanded shaft RPM for simplicity
@@ -46,8 +44,7 @@ classdef AutopilotEnv < rl.env.MATLABEnvironment
             % Calculate reward based on heading error
             headingError = wrapToPi(this.DesiredHeading - yawAngle);
             reward = -abs(headingError);  % Reward is negative of heading error magnitude
-            %reward = 2*exp(-10*abs(headingError)) - 0.3;
-
+            
             % Update observation (yaw angle)
             nextObs = yawAngle;
             loggedSignals = struct('HeadingError', headingError);

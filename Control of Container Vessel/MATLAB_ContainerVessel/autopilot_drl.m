@@ -25,16 +25,17 @@ for ii = 0:dt:tf
 
     % Define observation for the RL agent (e.g., current heading error)
     currentYaw = X(6);  % yaw angle in radians
-    headingError = wrapToPi(setco - currentYaw);  % wrap to [-pi, pi]
-    observation = headingError;  % Single state observation
+    headingError = wrapToPi(setco - currentYaw);  % [-pi, pi]
+    observation = X(9);  
 
     % Get the rudder action from the RL agent
     % Convert the observation to a format compatible with the agent
-    action = getAction(agent, {observation});
+    action = getAction(agent, observation);
+    action = action{1};
     
     % Extract rudder angle command from action output
-    delta_c = action{1};  % Assuming action is returned as a cell array
-    delta_c = max(min(delta_c, 10*pi/180), -10*pi/180);  % limit to ±10 degrees
+    delta_c = action(1);  
+    delta_c = max(min(delta_c, 10*pi/180), -10*pi/180);  
 
     % Define control input vector [delta_c; n_c]
     uu = [delta_c; n_c];
