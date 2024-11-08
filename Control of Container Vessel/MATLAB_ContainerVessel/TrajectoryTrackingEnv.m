@@ -1,12 +1,17 @@
-classdef speed_control_env < rl.env.MATLABEnvironment
+classdef TrajectoryTrackingEnv < rl.env.MATLABEnvironment
     properties
         % State variables (relevant states from container model)
         State = [8; 0; 0; 0; 0; 0; 0; 0; 0; 80];  % Initial state: [u; v; r; x; y; psi; p; phi; delta; n]
         
         % Simulation parameters
-        SampleTime = 0.1;                % Simulation time step
-        DesiredHeading = 20 * pi / 180;  % Desired course (radians)
-        DesiredSpeed = 10;               % Desired speed (m/s)
+        SampleTime = 0.1;        % Simulation time step
+        DesiredSpeed = 5;        % Desired speed [m/s]
+        
+        % Waypoints for trajectory tracking
+        WaypointsX = [0, 1000, 1000, 2000, 4000];
+        WaypointsY = [0, 1000, 3000, 5000, 5000];
+        AcceptanceRadius = 175/2;  % Radius of acceptance for each waypoint
+        CurrentWaypointIndex = 1;  % Index of the current target waypoint
     end
     
     properties(Access = protected)
@@ -15,7 +20,7 @@ classdef speed_control_env < rl.env.MATLABEnvironment
     end
     
     methods
-        function this = speed_control_env()
+        function this = TrajectoryTrackingEnv()
             % Define observation space (10-dimensional state vector)
             ObservationInfo = rlNumericSpec([10 1], ...
                 'LowerLimit', -inf, 'UpperLimit', inf);
@@ -36,8 +41,6 @@ classdef speed_control_env < rl.env.MATLABEnvironment
         end
         
         function [nextObs, reward, isDone, loggedSignals] = step(this, action)
-            % Apply action and update the state based on ship dynamics
-            
             % Extract actions
             delta_c = action(1);  % Rudder angle command
             n_c = action(2);      % Shaft speed command
@@ -49,15 +52,38 @@ classdef speed_control_env < rl.env.MATLABEnvironment
             % Enforce yaw angle within [-pi, pi] range
             this.State(6) = wrapToPi(this.State(6));
             
-            % Compute heading and speed errors
-            headingError = wrapToPi(this.DesiredHeading - this.State(6));
-            speedError = this.DesiredSpeed - this.State(1);
-
-            % Reward: negative of squared errors in heading and speed
-            reward = - sqrt(headingError^2 + speedError^2);
+            % Get current waypoint position
+            targetX = this.WaypointsX(this.CurrentWaypointIndex);
+            targetY = this.WaypointsY(this.CurrentWaypointIndex);
             
-            % Check terminal condition
-            isDone = abs(headingError) < 0.05 && abs(speedError) < 0.1;
+            % Calculate distance to the current waypoint
+            dx = targetX - this.State(4);  % Difference in x-position
+            dy = targetY - this.State(5);  % Difference in y-position
+            dist_to_wpt = sqrt(dx^2 + dy^2);
+            
+            % Check if the waypoint is reached
+            if dist_to_wpt <= this.AcceptanceRadius && this.CurrentWaypointIndex < length(this.WaypointsX)
+                this.CurrentWaypointIndex = this.CurrentWaypointIndex + 1;
+                % Update to the new target waypoint
+                targetX = this.WaypointsX(this.CurrentWaypointIndex);
+                targetY = this.WaypointsY(this.CurrentWaypointIndex);
+                dx = targetX - this.State(4);
+                dy = targetY - this.State(5);
+                dist_to_wpt = sqrt(dx^2 + dy^2);
+            end
+            
+            % Desired heading angle toward the waypoint
+            desiredHeading = atan2(dy, dx);
+            
+            % Calculate heading and speed errors
+            headingError = wrapToPi(desiredHeading - this.State(6));
+            speedError = this.DesiredSpeed - this.State(1);
+            
+            % Reward: negative of squared errors in heading, speed, and distance to waypoint
+            reward = - sqrt(headingError^2 + speedError^2 + 0.1 * dist_to_wpt^2);
+            
+            % Check if all waypoints are reached
+            isDone = this.CurrentWaypointIndex == length(this.WaypointsX) && dist_to_wpt <= this.AcceptanceRadius;
             this.IsDone = isDone;
             
             % Return next observation, reward, done flag, and logged signals
@@ -70,6 +96,7 @@ classdef speed_control_env < rl.env.MATLABEnvironment
             u0 = 8;            % Initial surge velocity
             n_c = 80;          % Initial shaft speed
             this.State = [u0; 0; 0; 0; 0; 0; 0; 0; 0; n_c];  % Reset to initial state
+            this.CurrentWaypointIndex = 1;  % Reset waypoint index
             this.IsDone = false;
             initialObservation = this.State;
         end

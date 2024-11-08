@@ -98,7 +98,7 @@ for ii = 0:dt:tf
         dx = x_wpt(k) - X(4);
         dy = y_wpt(k) - X(5);
     end
-  
+    
     % Waypoint guidance to determine desired heading
     set_psi = atan2(dy, dx);
 

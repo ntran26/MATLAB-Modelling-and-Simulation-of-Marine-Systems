@@ -1,7 +1,7 @@
 classdef SpeedControlEnv < rl.env.MATLABEnvironment
     properties
-        % State variables (all states for the model)
-        FullState = [8; 0; 0; 0; 0; 0; 0; 0; 0; 80];  % [u; v; r; x; y; psi; p; phi; delta; n]
+        % State variables (relevant states from container model)
+        State = [8; 0; 0; 0; 0; 0; 0; 0; 0; 80];  % Initial state: [u; v; r; x; y; psi; p; phi; delta; n]
         
         % Simulation parameters
         SampleTime = 0.1;                % Simulation time step
@@ -16,15 +16,15 @@ classdef SpeedControlEnv < rl.env.MATLABEnvironment
     
     methods
         function this = SpeedControlEnv()
-            % Define observation space (2-dimensional: surge velocity and yaw angle)
-            ObservationInfo = rlNumericSpec([2 1], ...
+            % Define observation space (10-dimensional state vector)
+            ObservationInfo = rlNumericSpec([10 1], ...
                 'LowerLimit', -inf, 'UpperLimit', inf);
-            ObservationInfo.Name = 'Surge Velocity and Yaw Angle';
-            ObservationInfo.Description = '[u; psi]';
+            ObservationInfo.Name = 'Ship States';
+            ObservationInfo.Description = '[u; v; r; x; y; psi; p; phi; delta; n]';
 
             % Define action space (continuous [rudder angle, shaft speed])
             ActionInfo = rlNumericSpec([2 1], ...
-                'LowerLimit', [-10*pi/180; 0], ...
+                'LowerLimit', [-10*pi/180; 1], ...
                 'UpperLimit', [10*pi/180; 200]);
             ActionInfo.Name = 'Rudder Angle and Shaft Speed';
 
@@ -43,39 +43,35 @@ classdef SpeedControlEnv < rl.env.MATLABEnvironment
             n_c = action(2);      % Shaft speed command
             
             % Run ship dynamics
-            [Xdot, U] = container(this.FullState, [delta_c; n_c]);
-            this.FullState = this.FullState + this.SampleTime * Xdot;
+            [Xdot, U] = container(this.State, [delta_c; n_c]);
+            this.State = this.State + this.SampleTime * Xdot;
             
             % Enforce yaw angle within [-pi, pi] range
-            this.FullState(6) = wrapToPi(this.FullState(6));
-            
-            % Extract relevant observations (surge velocity and yaw angle)
-            nextObs = [this.FullState(1); this.FullState(6)];
+            this.State(6) = wrapToPi(this.State(6));
             
             % Compute heading and speed errors
-            headingError = wrapToPi(this.DesiredHeading - this.FullState(6));
-            speedError = this.DesiredSpeed - this.FullState(1);
+            headingError = wrapToPi(this.DesiredHeading - this.State(6));
+            speedError = this.DesiredSpeed - this.State(1);
 
             % Reward: negative of squared errors in heading and speed
-            reward = - (headingError^2 + speedError^2);
+            reward = - sqrt(headingError^2 + speedError^2);
             
-            % Check terminal condition (optional)
+            % Check terminal condition
             isDone = abs(headingError) < 0.05 && abs(speedError) < 0.1;
             this.IsDone = isDone;
             
             % Return next observation, reward, done flag, and logged signals
+            nextObs = this.State;
             loggedSignals = [];
         end
         
         function initialObservation = reset(this)
-            % Reset state to initial conditions and return initial observation
+            % Reset state and return initial observation
             u0 = 8;            % Initial surge velocity
             n_c = 80;          % Initial shaft speed
-            this.FullState = [u0; 0; 0; 0; 0; 0; 0; 0; 0; n_c];  % Reset to initial state
+            this.State = [u0; 0; 0; 0; 0; 0; 0; 0; 0; n_c];  % Reset to initial state
             this.IsDone = false;
-            
-            % Initial observation includes only surge velocity and yaw angle
-            initialObservation = [this.FullState(1); this.FullState(6)];
+            initialObservation = this.State;
         end
     end
 end
