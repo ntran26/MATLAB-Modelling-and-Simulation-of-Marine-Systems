@@ -6,7 +6,7 @@ classdef AutopilotEnv < rl.env.MATLABEnvironment
         
         % Simulation parameters
         SampleTime = 0.1;           % Simulation time step
-        DesiredHeading = 10*pi/180; % Desired course (rad)
+        DesiredHeading = 20*pi/180; % Desired course (rad)
     end
     
     properties(Access = protected)
@@ -43,7 +43,7 @@ classdef AutopilotEnv < rl.env.MATLABEnvironment
             
             % Calculate reward based on heading error
             headingError = wrapToPi(this.DesiredHeading - yawAngle);
-            reward = -abs(headingError);  % Reward is negative of heading error magnitude
+            reward = -abs(headingError^2);  % Reward is negative of heading error magnitude
             
             % Update observation (yaw angle)
             nextObs = yawAngle;

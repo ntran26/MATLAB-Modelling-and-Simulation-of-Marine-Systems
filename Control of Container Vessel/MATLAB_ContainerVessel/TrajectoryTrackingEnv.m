@@ -1,7 +1,7 @@
 classdef TrajectoryTrackingEnv < rl.env.MATLABEnvironment
     properties
         % State variables (relevant states from container model)
-        State = [8; 0; 0; 0; 0; 0; 0; 0; 0; 80];  % Initial state: [u; v; r; x; y; psi; p; phi; delta; n]
+        State = [2; 0; 0; 0; 0; 0; 0; 0; 0; 80];  % Initial state: [u; v; r; x; y; psi; p; phi; delta; n]
         
         % Simulation parameters
         SampleTime = 0.1;        % Simulation time step
@@ -93,7 +93,7 @@ classdef TrajectoryTrackingEnv < rl.env.MATLABEnvironment
         
         function initialObservation = reset(this)
             % Reset state and return initial observation
-            u0 = 8;            % Initial surge velocity
+            u0 = 2;            % Initial surge velocity
             n_c = 80;          % Initial shaft speed
             this.State = [u0; 0; 0; 0; 0; 0; 0; 0; 0; n_c];  % Reset to initial state
             this.CurrentWaypointIndex = 1;  % Reset waypoint index
