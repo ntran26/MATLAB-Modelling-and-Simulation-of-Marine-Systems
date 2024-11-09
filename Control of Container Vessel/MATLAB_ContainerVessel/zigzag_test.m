@@ -104,5 +104,6 @@ figure
 plot(y_pos, x_pos);
 axis("equal");
 grid on;
-xlabel("y-direction");
-ylabel("x-direction");
+xlabel("Y-position [m]");
+ylabel("X-position [m]");
+title("Trajectory of 20/20 Zigzag Test")

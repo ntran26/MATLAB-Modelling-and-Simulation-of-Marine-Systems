@@ -159,7 +159,7 @@ plot(time, surge, 'LineWidth', 1.5);
 yline(set_u, 'r--', 'Desired Speed');
 grid on;
 ylabel("Speed [m/s]");
-title("Speed Control with PID");
+title("Trajectory Tracking Control with PID");
 
 subplot(4,1,2)
 plot(time, yaw*180/pi, "LineWidth", 1.5);
